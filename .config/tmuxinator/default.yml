@@ -1,0 +1,7 @@
+name: default
+root: "<%= ENV['TS_ROOT'] || '~/' %>"
+
+windows:
+  - exec:
+      panes:
+        -
