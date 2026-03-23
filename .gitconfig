@@ -1,0 +1,54 @@
+[alias]
+  getdefault = !git remote show origin | sed -n '/HEAD branch/s/.*: //p'
+	rmmerged = !git branch --merged "$(git getdefault)" | grep -v "$(git getdefault)" | xargs git branch -d
+	rmmergedmain = !git branch --merged main | grep -v main | xargs git branch -d
+	refresh = !( git up main || git up master ) && git fetch -p && git pull && git rmmerged
+	up = checkout
+	s = status
+	undo = reset --hard
+	roh = reset --hard @{u}
+	aa = add .
+	ci = commit -m
+	d = diff
+	da = add -p
+	dc = diff --cached
+	lg = log --oneline --graph
+	lgc = log --oneline --first-parent
+	lf=log --graph --abbrev-commit --decorate --format=format:'%C(bold blue)%h%C(reset) %C(yellow)[%an]%C(reset) %C(bold green)(%aD %ar)%C(reset) %C(white)%s%C(reset)%C(bold yellow)%d%C(reset)'
+	lfc=log --first-parent --abbrev-commit --decorate --format=format:'%C(bold blue)%h%C(reset) %C(yellow)[%an]%C(reset) %C(bold green)(%aD %ar)%C(reset) %C(white)%s%C(reset)%C(bold yellow)%d%C(reset)'
+	oops = commit --amend --no-edit
+[user]
+	name = Tom Pritchard
+	email = tom.pritchard+msmg@moneysupermarket.com
+[pull]
+	ff = only
+[credential]
+	helper = osxkeychain
+[merge]
+	conflictStyle = zdiff3
+  tool = kdiff3
+[mergetool]
+  keepBackup = false
+[mergetool "kdiff3"]
+  path = /opt/homebrew/bin/kdiff3
+  trustExitCode = false
+[advice]
+	addIgnoredFile = false
+[core]
+	editor = nvim
+	pager = delta
+[interactive]
+	diffFilter = delta --color-only
+[delta]
+	side-by-side = true
+	navigate = true
+[add.interactive]
+  useBuiltin = false
+[push]
+	autoSetupRemote = true
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+
