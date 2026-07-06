@@ -1,0 +1,12 @@
+name: dev
+root: "<%= ENV['TS_ROOT'] || '~/' %>"
+
+windows:
+  - editor:
+      layout: 6958,210x50,0,0[210x35,0,0{160x35,0,0,0,49x35,161,0,1},210x14,0,36,2]
+      panes:
+        - editor:
+            - nvim .
+        - ai:
+            - {{AI_CLI_COMMAND}}
+        - term:
