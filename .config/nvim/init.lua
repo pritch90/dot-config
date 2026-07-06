@@ -129,6 +129,11 @@ vim.keymap.set("n", "<leader>nh", ":nohl<CR>", { desc = "Clear search highlights
 vim.keymap.set("n", "<C-d>", "<C-d>zz", { desc = "Scroll down and centre" })
 vim.keymap.set("n", "<C-u>", "<C-u>zz", { desc = "Scroll up and centre" })
 
+-- Line numbers
+vim.keymap.set("n", "<leader>rn", function()
+  vim.opt.rnu = not vim.opt.rnu:get()
+end, { desc = "Toggle relative/absolute line numbers" })
+
 -- [ ---- AUTOCMD ---- ] --
 vim.api.nvim_create_autocmd("TextYankPost", {
 	group = vim.api.nvim_create_augroup("highlight_yank", { clear = true }),
