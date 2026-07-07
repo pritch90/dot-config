@@ -414,7 +414,22 @@ local git_text = { type = "text", val = git_status_section, opts = { hl = "Comme
 
 vim.api.nvim_create_autocmd("VimEnter", {
 	callback = function()
-		-- Rebuild layout now that vim.v.oldfiles is populated
+		-- When launched with a directory argument (e.g. `nvim .` or `nvim ~/src/foo`),
+		-- switch the working directory into it. Neovim does not chdir into a path
+		-- argument by default, so without this the dashboard's session, MRU, and git
+		-- sections would scope to wherever nvim was launched from rather than the
+		-- directory that was actually opened.
+		local arg = vim.fn.argv(0)
+		local opened_dir = arg ~= "" and vim.fn.isdirectory(arg) == 1
+		if opened_dir then
+			vim.cmd("cd " .. vim.fn.fnameescape(arg))
+			-- Recompute the session button for the newly-entered project
+			local label = has_session() and "  Restore session" or "  Restore session (none saved)"
+			dashboard.section.buttons.val[1] =
+				dashboard.button("s", label, has_session() and ":lua restore_session()<CR>" or "")
+		end
+
+		-- Rebuild layout now that vim.v.oldfiles is populated and cwd is set
 		dashboard.config.layout = {
 			{ type = "padding", val = 2 },
 			dashboard.section.header,
@@ -434,8 +449,7 @@ vim.api.nvim_create_autocmd("VimEnter", {
 		alpha.setup(dashboard.config)
 
 		-- Show dashboard when nvim is started with a directory argument (e.g. `nvim .`)
-		local arg = vim.fn.argv(0)
-		if arg ~= "" and vim.fn.isdirectory(arg) == 1 then
+		if opened_dir then
 			vim.cmd("bdelete")
 			alpha.start()
 		end

@@ -13,6 +13,13 @@ if [[ -o interactive ]]; then
   compinit -C -d "${XDG_CACHE_HOME:-$HOME/.cache}/zcompdump"
 
   zstyle ':completion:*' matcher-list '' 'm:{a-zA-Z}={A-Za-z}' 'r:|=*' 'l:|=* r:|=*'
+
+  # Load nvm eagerly so nvm, node, and node-based global CLIs (e.g. codex) are on PATH.
+  load_nvm
+  if [[ -s "$NVM_DIR/bash_completion" ]]; then
+    autoload -Uz bashcompinit && bashcompinit
+    source "$NVM_DIR/bash_completion"
+  fi
 fi
 
 export SDKMAN_DIR="${SDKMAN_DIR:-$HOME/.sdkman}"
