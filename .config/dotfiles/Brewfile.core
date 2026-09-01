@@ -1,22 +1,50 @@
+# Core toolchain. Always installed.
+
 tap "jandedobbeleer/oh-my-posh"
 
+# Version control
 brew "git"
 brew "gh"
 brew "git-delta"
 brew "git-lfs"
+brew "git-gui"
+brew "lazygit"
+
+# Shell and terminal
 brew "tmux"
 brew "tmuxinator"
+brew "oh-my-posh"
+brew "zsh-completions"
+
+# Editor and file navigation
 brew "neovim"
 brew "fd"
 brew "ripgrep"
 brew "fzf"
-brew "jq"
 brew "yazi"
-brew "lazygit"
+brew "tree"
+
+# General CLI
+brew "jq"
+brew "wget"
+brew "curl"
+brew "gnu-sed"
+brew "adr-tools"
+
+# JVM
+brew "gradle"
+brew "groovy"
+brew "maven"
+
+# Node and Go
 brew "nvm"
-brew "go"
 brew "node"
 brew "pnpm"
-brew "oh-my-posh"
+brew "yarn"
+brew "go"
+
+# Containers
+brew "docker-compose"
+cask "docker-desktop"
 
 cask "kdiff3"

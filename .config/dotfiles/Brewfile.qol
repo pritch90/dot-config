@@ -1,0 +1,8 @@
+# Quality-of-life apps. Installed by default; skip with `install.sh --minimal`.
+
+cask "google-chrome"
+cask "iterm2"
+cask "rectangle"
+cask "postman"
+cask "spotify"
+cask "logi-options+"
