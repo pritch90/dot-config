@@ -115,3 +115,17 @@ chpwd() {
 }
 
 set_project_versions
+
+autoload -Uz add-zsh-hook
+
+# Keep COLORFGBG in sync with the tmux theme (set by apply-system-theme.sh),
+# so terminal apps that infer light/dark from it — e.g. Copilot CLI — follow
+# the system theme. Re-read before each prompt so long-lived panes stay current.
+_sync_colorfgbg() {
+  [[ -n "${TMUX:-}" ]] || return
+  local assignment
+  assignment="$(command tmux show-environment -gs COLORFGBG 2>/dev/null)" || return
+  [[ -n "$assignment" ]] && eval "$assignment"
+}
+
+add-zsh-hook precmd _sync_colorfgbg

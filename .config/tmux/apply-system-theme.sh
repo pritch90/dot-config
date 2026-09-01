@@ -19,6 +19,7 @@ fi
 
 case "$mode" in
   dark)
+    colorfgbg="15;0"
     bg="#282a36"
     fg="#eff0eb"
     muted="#686868"
@@ -34,6 +35,7 @@ case "$mode" in
     selection_fg="#000000"
     ;;
   *)
+    colorfgbg="0;15"
     bg="#ffffff"
     fg="#262626"
     muted="#b3b3b3"
@@ -81,6 +83,7 @@ pad_width=$((right_width - left_width))
 left_padding="$(repeat_spaces "$pad_width")"
 
 run_tmux set-option -gq @system_theme_mode "$mode"
+run_tmux set-environment -g COLORFGBG "$colorfgbg"
 run_tmux set-option -gq status-style "fg=$fg,bg=$bg,bold"
 run_tmux set-option -gq status-bg "$bg"
 run_tmux set-option -gq status-fg "$fg"
