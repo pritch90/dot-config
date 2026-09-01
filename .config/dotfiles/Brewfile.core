@@ -34,6 +34,11 @@ brew "curl"
 brew "gnu-sed"
 brew "adr-tools"
 
+# Fonts
+# Nerd Font is a hard dependency: nvim-web-devicons and blink.cmp's
+# nerd_font_variant both expect one, and render tofu boxes without it.
+cask "font-fira-code-nerd-font"
+
 # Containers
 brew "docker-compose"
 cask "docker-desktop"
