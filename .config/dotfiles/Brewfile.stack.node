@@ -1,0 +1,5 @@
+# Node stack. nvm is curl-installed by install.sh, not brewed.
+
+brew "node"
+brew "pnpm"
+brew "yarn"

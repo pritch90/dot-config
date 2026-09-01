@@ -1,8 +1,7 @@
-# Core toolchain. Always installed.
+# Core toolchain. Always installed, regardless of stack selection.
 #
-# nvm is deliberately absent: the Homebrew formula installs to
-# /opt/homebrew/opt/nvm and never creates $NVM_DIR (~/.nvm), which is where
-# .config/zsh/tools.zsh looks for it. install.sh curl-installs nvm instead.
+# Language-specific packages live in Brewfile.stack.<name> and are pulled in
+# based on ~/.config/dotfiles/stacks.
 
 tap "jandedobbeleer/oh-my-posh"
 
@@ -34,17 +33,6 @@ brew "wget"
 brew "curl"
 brew "gnu-sed"
 brew "adr-tools"
-
-# JVM
-brew "gradle"
-brew "groovy"
-brew "maven"
-
-# Node and Go
-brew "node"
-brew "pnpm"
-brew "yarn"
-brew "go"
 
 # Containers
 brew "docker-compose"
