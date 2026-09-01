@@ -6,7 +6,11 @@ dotfiles_dir="${HOME}/.config/dotfiles"
 local_env="${dotfiles_dir}/local.env"
 install_env="${dotfiles_dir}/install.local.env"
 core_brewfile="${dotfiles_dir}/Brewfile.core"
+qol_brewfile="${dotfiles_dir}/Brewfile.qol"
 optional_brewfile="${dotfiles_dir}/Brewfile.optional"
+
+# Set by --minimal; skips the quality-of-life app tier.
+minimal=0
 
 source "${dotfiles_dir}/versions.env"
 [[ -r "$local_env" ]] && source "$local_env"
@@ -31,6 +35,26 @@ confirm() {
   else
     [[ "$answer" == "y" || "$answer" == "yes" ]]
   fi
+}
+
+parse_args() {
+  while (( $# )); do
+    case "$1" in
+      --minimal)
+        minimal=1
+        ;;
+      -h|--help)
+        print -- "usage: install.sh [--minimal]"
+        print -- ""
+        print -- "  --minimal  skip the quality-of-life app tier (Brewfile.qol)"
+        exit 0
+        ;;
+      *)
+        fail "unknown option: $1"
+        ;;
+    esac
+    shift
+  done
 }
 
 ensure_platform() {
@@ -128,6 +152,15 @@ write_local_env() {
 build_brewfile() {
   local temp_brewfile="$1"
   /bin/cp "$core_brewfile" "$temp_brewfile"
+
+  if (( minimal )); then
+    print -- "install: --minimal, skipping quality-of-life apps"
+  else
+    print -- "" >> "$temp_brewfile"
+    print -- "# Quality-of-life apps" >> "$temp_brewfile"
+    /bin/cat "$qol_brewfile" >> "$temp_brewfile"
+  fi
+
   print -- "" >> "$temp_brewfile"
   print -- "# Optional selections" >> "$temp_brewfile"
 
@@ -145,6 +178,25 @@ install_brew_packages() {
   build_brewfile "$temp_brewfile"
   /opt/homebrew/bin/brew bundle --file="$temp_brewfile"
   /bin/rm -f "$temp_brewfile"
+}
+
+ensure_nvm() {
+  export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+
+  # The Homebrew nvm formula installs to /opt/homebrew/opt/nvm and never
+  # creates $NVM_DIR, so .config/zsh/tools.zsh would silently never load it.
+  # Install from source instead, matching where tools.zsh looks.
+  if [[ -s "$NVM_DIR/nvm.sh" ]]; then
+    return
+  fi
+
+  /bin/mkdir -p "$NVM_DIR"
+  /usr/bin/curl -fsSL \
+    "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" | /bin/bash
+}
+
+ensure_src_dir() {
+  /bin/mkdir -p "$HOME/src"
 }
 
 ensure_sdkman() {
@@ -224,6 +276,7 @@ validate_neovim() {
 }
 
 main() {
+  parse_args "$@"
   ensure_platform
   load_saved_choices
   prompt_optional_tools
@@ -232,7 +285,9 @@ main() {
   write_install_env
   write_local_env
   install_brew_packages
+  ensure_nvm
   ensure_sdkman
+  ensure_src_dir
   generate_tmuxinator_dev
   ensure_git_email
   bootstrap_tpm

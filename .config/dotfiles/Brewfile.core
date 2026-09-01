@@ -1,4 +1,8 @@
 # Core toolchain. Always installed.
+#
+# nvm is deliberately absent: the Homebrew formula installs to
+# /opt/homebrew/opt/nvm and never creates $NVM_DIR (~/.nvm), which is where
+# .config/zsh/tools.zsh looks for it. install.sh curl-installs nvm instead.
 
 tap "jandedobbeleer/oh-my-posh"
 
@@ -37,7 +41,6 @@ brew "groovy"
 brew "maven"
 
 # Node and Go
-brew "nvm"
 brew "node"
 brew "pnpm"
 brew "yarn"
