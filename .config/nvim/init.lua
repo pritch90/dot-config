@@ -1,5 +1,9 @@
 -- [ ---- OPTIONS ---- ] --
 
+-- Language stacks enabled on this machine. Read from
+-- ~/.config/dotfiles/stacks, the same file install.sh and zsh use.
+local stacks = require("stacks")
+
 -- Leader keys
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
@@ -613,15 +617,10 @@ vim.treesitter.language.register("markdown", "mdx")
 
 require("nvim-treesitter").setup()
 
--- Auto-install parsers
-local ensure_installed = {
+-- Auto-install parsers. Core parsers always; the rest come from enabled stacks.
+local ensure_installed = stacks.collect("treesitter", {
 	"json",
-	"javascript",
-	"typescript",
-	"tsx",
 	"yaml",
-	"html",
-	"css",
 	"markdown",
 	"markdown_inline",
 	"bash",
@@ -629,17 +628,7 @@ local ensure_installed = {
 	"vim",
 	"dockerfile",
 	"gitignore",
-	"c",
-	"rust",
-	"zig",
-	"odin",
-	"vue",
-  "svelte",
-	"go",
-	"gomod",
-	"gosum",
-	"gowork",
-}
+})
 local installed = require("nvim-treesitter").get_installed("parsers")
 local installed_set = {}
 for _, p in ipairs(installed) do
@@ -820,33 +809,26 @@ require("mason-lspconfig").setup({
 	automatic_enable = false, -- Prevent auto-starting LSPs (we manually enable them below)
 })
 require("mason-tool-installer").setup({
-	ensure_installed = {
+	ensure_installed = stacks.collect("mason", {
 		"lua_ls",
 		"stylua",
-		"ts_ls",
-		"js-debug-adapter",
-		"vue_ls",
-		"eslint_d",
-		"prettierd",
 		"yamlls",
-		"svelte-language-server",
-		"basedpyright",
-		"ruff",
-		"gopls",
-		"terraformls",
-		"gofumpt",
-		"goimports",
-		"golangci-lint",
-		"delve",
-	},
+	}),
 })
 
 -- Configure LSP servers
 local capabilities = require("blink.cmp").get_lsp_capabilities()
 
-vim.lsp.config("ts_ls", {
+-- The Vue plugin lives in the web stack's mason package, so only wire it up
+-- when that stack is enabled; otherwise ts_ls points at a path that is absent.
+local ts_ls_config = {
 	capabilities = capabilities,
-	init_options = {
+	filetypes = { "typescript", "javascript", "javascriptreact", "typescriptreact" },
+}
+
+if stacks.is_enabled("web") then
+	table.insert(ts_ls_config.filetypes, "vue")
+	ts_ls_config.init_options = {
 		plugins = {
 			{
 				name = "@vue/typescript-plugin",
@@ -855,9 +837,10 @@ vim.lsp.config("ts_ls", {
 				languages = { "vue" },
 			},
 		},
-	},
-	filetypes = { "typescript", "javascript", "javascriptreact", "typescriptreact", "vue" },
-})
+	}
+end
+
+vim.lsp.config("ts_ls", ts_ls_config)
 
 vim.lsp.config("yamlls", {
 	capabilities = capabilities,
@@ -891,15 +874,9 @@ vim.lsp.config("terraformls", {
 	capabilities = capabilities,
 })
 
-vim.lsp.enable("ts_ls")
-vim.lsp.enable("lua_ls")
-vim.lsp.enable("vue_ls")
-vim.lsp.enable("yamlls")
-vim.lsp.enable("svelte")
-vim.lsp.enable("basedpyright")
-vim.lsp.enable("ruff")
-vim.lsp.enable("gopls")
-vim.lsp.enable("terraformls")
+for _, server in ipairs(stacks.collect("lsp", { "lua_ls", "yamlls" })) do
+	vim.lsp.enable(server)
+end
 
 -- LSP keymaps
 vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, { desc = "Code actions" })
@@ -945,35 +922,12 @@ vim.pack.add({
 })
 local conform = require("conform")
 
--- Helper to detect which formatter to use for JS/TS projects
-local function js_formatter()
-	-- Check for eslint config files
-	local eslint_configs =
-		{ ".eslintrc", ".eslintrc.js", ".eslintrc.json", ".eslintrc.yaml", "eslint.config.js", "eslint.config.mjs" }
-	for _, config in ipairs(eslint_configs) do
-		if vim.fn.filereadable(vim.fn.getcwd() .. "/" .. config) == 1 then
-			return { "eslint_d" }
-		end
-	end
-	-- Default to prettier
-	return { "prettierd" }
-end
-
 conform.setup({
 	log_level = vim.log.levels.ERROR,
 	notify_on_error = true,
-	formatters_by_ft = {
+	formatters_by_ft = stacks.merge("formatters", {
 		lua = { "stylua" },
-		python = { "ruff_organize_imports", "ruff_format" },
-		rust = { "rustfmt" },
-		go = { "goimports", "gofumpt" },
-		json = { "prettierd" },
-		javascript = js_formatter,
-		typescript = js_formatter,
-		javascriptreact = js_formatter,
-		typescriptreact = js_formatter,
-		vue = js_formatter,
-	},
+	}),
 	-- Use format_on_save to automatically format files
 	format_on_save = false,
 })
@@ -1204,102 +1158,6 @@ dap_keymap("<leader>du", "ui_toggle", "Toggle debug UI")
 dap_keymap("<leader>dr", "reset", "Reset debugger")
 dap_keymap("<leader>dh", "hover", "Debug hover")
 
--- Java — deferred to first java file
-vim.api.nvim_create_autocmd("FileType", {
-	pattern = "java",
-	once = true,
-	callback = function()
-		vim.pack.add({
-			{ src = "https://github.com/MunifTanjim/nui.nvim" },
-			{ src = "https://github.com/mfussenegger/nvim-dap" },
-			{ src = "https://github.com/nvim-java/lua-async-await" },
-			{ src = "https://github.com/nvim-java/nvim-java-core" },
-			{ src = "https://github.com/nvim-java/nvim-java-refactor" },
-			{ src = "https://github.com/nvim-java/nvim-java-test" },
-			{ src = "https://github.com/nvim-java/nvim-java-dap" },
-			{ src = "https://github.com/JavaHello/spring-boot.nvim" },
-			{ src = "https://github.com/nvim-java/nvim-java" },
-		})
-
-		local jdtls_java_version = vim.env.JDTLS_JAVA_VERSION or "25.0.3-amzn"
-		local java_candidates = {
-			vim.env.JDTLS_JAVA_HOME,
-			vim.fn.expand("~/.sdkman/candidates/java/" .. jdtls_java_version),
-			vim.env.JAVA_HOME,
-		}
-		local jdtls_java_home
-		for _, candidate in ipairs(java_candidates) do
-			if candidate and candidate ~= "" and vim.fn.executable(candidate .. "/bin/java") == 1 then
-				jdtls_java_home = candidate
-				break
-			end
-		end
-
-		if jdtls_java_home then
-			vim.env.JAVA_HOME = jdtls_java_home
-			vim.env.PATH = jdtls_java_home .. "/bin:" .. vim.env.PATH
-		else
-			vim.notify("JDTLS Java not found for version: " .. jdtls_java_version, vim.log.levels.WARN)
-		end
-
-		require("java").setup({
-			root_markers = {
-				"settings.gradle",
-				"settings.gradle.kts",
-				"pom.xml",
-				"build.gradle",
-				"mvnw",
-				"gradlew",
-				"build.gradle.kts",
-			},
-			jdk = {
-				auto_install = false,
-			},
-			java_test = {
-				enable = true,
-			},
-			java_debug_adapter = {
-				enable = true,
-			},
-			spring_boot_tools = {
-				enable = false,
-			},
-			notifications = {
-				dap = false,
-			},
-		})
-
-		vim.lsp.enable("jdtls")
-		-- Re-trigger FileType so jdtls attaches to the current buffer
-		vim.schedule(function()
-			vim.api.nvim_exec_autocmds("FileType", { buffer = vim.api.nvim_get_current_buf() })
-		end)
-
-		-- Ensure Java DAP configs are populated after JDTLS attaches
-		ensure_dap()
-		vim.api.nvim_create_autocmd("LspAttach", {
-			callback = function(args)
-				local client = vim.lsp.get_client_by_id(args.data.client_id)
-				if not client or client.name ~= "jdtls" then
-					return
-				end
-				vim.defer_fn(function()
-					local dap = require("dap")
-					if not dap.configurations.java or #dap.configurations.java == 0 then
-						local ok, java_dap = pcall(require, "java-dap")
-						if ok then
-							java_dap.config_dap()
-						end
-					end
-				end, 3000)
-			end,
-		})
-
-		-- Java keymaps
-		vim.keymap.set("n", "<leader>jr", ":JavaTestRunCurrentMethod<CR>", { desc = "Run current test method" })
-		vim.keymap.set("n", "<leader>jR", ":JavaTestRunCurrentClass<CR>", { desc = "Run current test class" })
-		vim.keymap.set("n", "<leader>jd", ":JavaTestDebugCurrentMethod<CR>", { desc = "Debug current test method" })
-		vim.keymap.set("n", "<leader>jD", ":JavaTestDebugCurrentClass<CR>", { desc = "Debug current test class" })
-		vim.keymap.set("n", "<leader>jt", ":JavaTestViewLastReport<CR>", { desc = "View last test report" })
-	end,
-})
+-- Stack-specific setup that needs more than declarative lists (currently Java,
+-- which defers the whole nvim-java stack to the first java buffer).
+stacks.setup_all({ ensure_dap = ensure_dap })
