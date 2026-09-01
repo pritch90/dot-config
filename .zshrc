@@ -5,6 +5,7 @@ export DOTFILES_DIR="$HOME/.config/dotfiles"
 [[ -r "$DOTFILES_DIR/versions.env" ]] && source "$DOTFILES_DIR/versions.env"
 [[ -r "$DOTFILES_DIR/local.env" ]] && source "$DOTFILES_DIR/local.env"
 
+source "$HOME/.config/zsh/stacks.zsh"
 source "$HOME/.config/zsh/path.zsh"
 source "$HOME/.config/zsh/tools.zsh"
 source "$HOME/.config/zsh/aliases.zsh"

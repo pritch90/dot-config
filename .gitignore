@@ -4,6 +4,7 @@
 .config/zsh/local.zsh
 .config/zsh/work.zsh
 .config/zsh/secrets.zsh
+.config/dotfiles/stacks
 .config/tmuxinator/dev.yml
 .config/tmux/plugins/
 .config/nvim/.nvimlog

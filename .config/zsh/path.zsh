@@ -11,8 +11,12 @@ path_prepend "/opt/homebrew/bin"
 path_prepend "/opt/homebrew/sbin"
 path_prepend "$HOME/.local/bin"
 path_prepend "$HOME/bin"
+# Not stack-gated: holds cargo-installed CLI tools regardless of Rust dev.
 path_prepend "$HOME/.cargo/bin"
-path_prepend "$HOME/go/bin"
 
-export PNPM_HOME="$HOME/Library/pnpm"
-path_prepend "$PNPM_HOME"
+stack_enabled go && path_prepend "$HOME/go/bin"
+
+if stack_enabled node; then
+  export PNPM_HOME="$HOME/Library/pnpm"
+  path_prepend "$PNPM_HOME"
+fi
