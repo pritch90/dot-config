@@ -10,6 +10,32 @@ The repo tracks the portable parts of my shell, Git, tmux, tmuxinator, and Neovi
 - Internet access for Homebrew, GitHub, SDKMAN, and plugin downloads
 - A public or otherwise cloneable copy of this repo at `https://github.com/pritch90/dot-config.git`
 
+### Corporate networks
+
+On a network behind a TLS-inspecting proxy, outbound HTTPS is re-signed by an internal certificate authority. `curl` and Homebrew will reject those connections until they trust that CA, so **bootstrap fails at its first download** if the CA is missing.
+
+Provision the trust store **manually before running bootstrap**:
+
+1. Obtain the internal root CA certificate from your IT department.
+2. Create `~/.ca_certs/` and place the certificate there.
+3. Add a combined bundle at `~/.ca_certs/cert.pem` containing the system roots plus that certificate. `curl` and most language runtimes read this single file.
+
+Then point the shell at it in `~/.config/zsh/work.zsh`, which is gitignored and sourced automatically when present:
+
+```sh
+export CERT_DIR="$HOME/.ca_certs"
+export CERT_PATH="$CERT_DIR/cert.pem"
+export SSL_CERT_FILE="$CERT_PATH"
+export SSL_CERT_DIR="$CERT_DIR/"
+export REQUESTS_CA_BUNDLE="$CERT_PATH"
+export AWS_CA_BUNDLE="$CERT_PATH"
+export NODE_EXTRA_CA_CERTS="$CERT_DIR/<root-ca>.crt"
+```
+
+The JDK keeps its own trust store, so import the CA separately with `keytool` if Java builds fail on TLS.
+
+None of this is tracked. On a home network it is not needed at all.
+
 ## Fresh Install
 
 Run the bootstrap script from a fresh machine:
@@ -50,6 +76,8 @@ Generated or local files are ignored:
 - `~/.config/zsh/work.zsh`
 - `~/.config/zsh/secrets.zsh`
 - `~/.config/tmuxinator/dev.yml`
+- `~/.config/nvim/.nvimlog`
+- `~/Library/`
 
 ## Bare Repo Usage
 
@@ -70,16 +98,20 @@ git --git-dir="$HOME/.cfg" --work-tree="$HOME" status
 
 ## Installation
 
-Core packages are listed in:
+Packages are split across three tiers:
 
 ```text
-~/.config/dotfiles/Brewfile.core
+~/.config/dotfiles/Brewfile.core      always installed
+~/.config/dotfiles/Brewfile.qol       installed by default, skip with --minimal
+~/.config/dotfiles/Brewfile.optional  prompted for, one question per tool
 ```
 
-Optional packages are listed in:
+`Brewfile.core` is the development toolchain: Git, shell, editor, JVM, Node, Go and container tooling.
 
-```text
-~/.config/dotfiles/Brewfile.optional
+`Brewfile.qol` is the quality-of-life app layer — browser, terminal, window manager, API client, music and peripherals. It is installed by default. Skip it for a lean or throwaway machine:
+
+```sh
+~/.config/dotfiles/install.sh --minimal
 ```
 
 `install.sh` asks which optional tools to install before running Homebrew, then installs everything in one batch. It stores local choices in:
@@ -124,6 +156,18 @@ Example:
 export JDTLS_JAVA_VERSION="25.0.3-amzn"
 ```
 
+## Node
+
+`nvm` is **not** installed with Homebrew. The formula installs to `/opt/homebrew/opt/nvm` and never creates `$NVM_DIR` (`~/.nvm`), which is where `~/.config/zsh/tools.zsh` looks for it — so a brewed nvm silently never loads on a fresh machine.
+
+`install.sh` installs it from source with `curl` instead, into `~/.nvm`. The step is idempotent and skipped if `$NVM_DIR/nvm.sh` already exists. The version is pinned in:
+
+```text
+~/.config/dotfiles/versions.env
+```
+
+`node`, `pnpm` and `yarn` are still installed via Homebrew for a working default toolchain; use `nvm` when a project needs a specific Node version.
+
 ## tmuxinator
 
 `default.yml` is tracked directly.
@@ -166,7 +210,9 @@ Run:
 ~/.config/dotfiles/doctor.sh
 ```
 
-The doctor script scans tracked files for obvious private/work-only values such as tokens, company domains, and certificate references.
+The doctor script scans tracked files for obvious private/work-only values such as tokens, company domains, and certificate references. It also scans tracked *paths*, since a directory name can leak an employer even when no file content does.
+
+It exits non-zero on a match, so it works as a pre-push check and runs from any directory.
 
 ## Git Identity
 
