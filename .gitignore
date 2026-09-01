@@ -6,3 +6,7 @@
 .config/zsh/secrets.zsh
 .config/tmuxinator/dev.yml
 .config/tmux/plugins/
+.config/nvim/.nvimlog
+
+# OneDrive-synced work documents. Never belong in a public dotfiles repo.
+Library/
