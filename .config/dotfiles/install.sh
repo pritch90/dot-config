@@ -12,8 +12,14 @@ optional_brewfile="${dotfiles_dir}/Brewfile.optional"
 # Set by --minimal; skips the quality-of-life app tier.
 minimal=0
 
+# Set by --stacks; skips the interactive stack prompt.
+stacks_override=""
+
 source "${dotfiles_dir}/versions.env"
 [[ -r "$local_env" ]] && source "$local_env"
+
+# Stack selection: DOTFILES_KNOWN_STACKS, DOTFILES_STACKS, stack_enabled().
+source "${HOME}/.config/zsh/stacks.zsh"
 
 fail() {
   print -u2 -- "install: $*"
@@ -43,10 +49,21 @@ parse_args() {
       --minimal)
         minimal=1
         ;;
+      --stacks)
+        (( $# >= 2 )) || fail "--stacks needs a value, e.g. --stacks java,node"
+        stacks_override="$2"
+        shift
+        ;;
+      --stacks=*)
+        stacks_override="${1#--stacks=}"
+        ;;
       -h|--help)
-        print -- "usage: install.sh [--minimal]"
+        print -- "usage: install.sh [--minimal] [--stacks a,b,c]"
         print -- ""
-        print -- "  --minimal  skip the quality-of-life app tier (Brewfile.qol)"
+        print -- "  --minimal       skip the quality-of-life app tier (Brewfile.qol)"
+        print -- "  --stacks a,b,c  set language stacks non-interactively"
+        print -- ""
+        print -- "known stacks: ${DOTFILES_KNOWN_STACKS[*]}"
         exit 0
         ;;
       *)
@@ -68,6 +85,60 @@ load_saved_choices() {
   if [[ -r "$install_env" ]]; then
     source "$install_env"
   fi
+}
+
+write_stacks_file() {
+  local -a chosen
+  chosen=("$@")
+
+  /bin/mkdir -p "$dotfiles_dir"
+  {
+    print -- "# Language stacks enabled on this machine."
+    print -- "# One per line. Edit and restart your shell, or re-run install.sh."
+    print -- "# Known stacks: ${DOTFILES_KNOWN_STACKS[*]}"
+    local stack
+    for stack in "${chosen[@]}"; do
+      print -- "$stack"
+    done
+  } >| "$DOTFILES_STACKS_FILE"
+
+  # Re-read so the rest of this run sees the new selection, including any
+  # implied stacks (web pulls in node).
+  dotfiles_load_stacks
+}
+
+prompt_stacks() {
+  local -a chosen
+  chosen=()
+  local stack
+
+  if [[ -n "$stacks_override" ]]; then
+    chosen=(${(s:,:)stacks_override})
+    for stack in "${chosen[@]}"; do
+      (( ${DOTFILES_KNOWN_STACKS[(Ie)$stack]} )) \
+        || fail "unknown stack: $stack (known: ${DOTFILES_KNOWN_STACKS[*]})"
+    done
+    write_stacks_file "${chosen[@]}"
+    print -- "install: stacks set to ${DOTFILES_STACKS[*]}"
+    return
+  fi
+
+  if [[ -r "$DOTFILES_STACKS_FILE" ]]; then
+    print -- "Saved stacks: ${DOTFILES_STACKS[*]}"
+    if confirm "Reuse saved stack selection?" "y"; then
+      return
+    fi
+  fi
+
+  print -- "Select the language stacks for this machine."
+  for stack in "${DOTFILES_KNOWN_STACKS[@]}"; do
+    if confirm "  Enable the ${stack} stack?" "n"; then
+      chosen+=("$stack")
+    fi
+  done
+
+  write_stacks_file "${chosen[@]}"
+  print -- "install: stacks set to ${DOTFILES_STACKS[*]}"
 }
 
 prompt_optional_tools() {
@@ -129,6 +200,8 @@ prompt_ai_cli() {
 }
 
 prompt_jdtls_java() {
+  stack_enabled java || return 0
+
   local answer
   read -r "answer?JDTLS Java version [$JDTLS_JAVA_VERSION] "
   answer="${answer:-$JDTLS_JAVA_VERSION}"
@@ -144,6 +217,8 @@ write_install_env() {
 }
 
 write_local_env() {
+  stack_enabled java || return 0
+
   if [[ ! -r "$local_env" ]] || ! /usr/bin/grep -q '^export JDTLS_JAVA_VERSION=' "$local_env"; then
     print -r -- "export JDTLS_JAVA_VERSION=\"$JDTLS_JAVA_VERSION\"" >> "$local_env"
   fi
@@ -152,6 +227,16 @@ write_local_env() {
 build_brewfile() {
   local temp_brewfile="$1"
   /bin/cp "$core_brewfile" "$temp_brewfile"
+
+  local stack stack_brewfile
+  for stack in "${DOTFILES_STACKS[@]}"; do
+    stack_brewfile="${dotfiles_dir}/Brewfile.stack.${stack}"
+    # Not every stack needs Homebrew packages; some are mason-only.
+    [[ -r "$stack_brewfile" ]] || continue
+    print -- "" >> "$temp_brewfile"
+    print -- "# Stack: ${stack}" >> "$temp_brewfile"
+    /bin/cat "$stack_brewfile" >> "$temp_brewfile"
+  done
 
   if (( minimal )); then
     print -- "install: --minimal, skipping quality-of-life apps"
@@ -181,6 +266,8 @@ install_brew_packages() {
 }
 
 ensure_nvm() {
+  stack_enabled node || return 0
+
   export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
 
   # The Homebrew nvm formula installs to /opt/homebrew/opt/nvm and never
@@ -200,6 +287,8 @@ ensure_src_dir() {
 }
 
 ensure_sdkman() {
+  stack_enabled java || return 0
+
   export SDKMAN_DIR="${SDKMAN_DIR:-$HOME/.sdkman}"
 
   if [[ ! -s "$SDKMAN_DIR/bin/sdkman-init.sh" ]]; then
@@ -279,6 +368,7 @@ main() {
   parse_args "$@"
   ensure_platform
   load_saved_choices
+  prompt_stacks
   prompt_optional_tools
   prompt_ai_cli
   prompt_jdtls_java
