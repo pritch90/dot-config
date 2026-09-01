@@ -53,6 +53,15 @@ The bootstrap script:
 - checks out tracked files into `$HOME`
 - runs `~/.config/dotfiles/install.sh`
 
+`install.sh` then asks for stacks, optional tools and a Git email, installs everything, prompts for `gh auth login` if needed, and offers to apply the macOS defaults.
+
+### What bootstrap does not do
+
+Worth knowing before you assume a new machine is finished:
+
+- **GUI application preferences are not tracked.** iTerm2, Rectangle, VS Code, IntelliJ, Postman and Chrome all keep settings under `~/Library`, which is gitignored. Those apps get installed, but at factory settings.
+- **Bootstrap sets `origin` to the HTTPS URL.** If you prefer an SSH remote, point it at your own host alias afterwards.
+
 ## Managed Files
 
 Core tracked areas:
@@ -66,6 +75,8 @@ Core tracked areas:
 - `~/.config/tmux/`
 - `~/.config/tmuxinator/default.yml`
 - `~/.config/dotfiles/`
+
+Fonts are installed by Homebrew rather than tracked: `font-fira-code-nerd-font` is in the core tier because Neovim's icons depend on it.
 
 Generated or local files are ignored:
 
@@ -260,6 +271,24 @@ The doctor script scans tracked files for obvious private/work-only values such 
 
 It exits non-zero on a match, so it works as a pre-push check and runs from any directory.
 
+## macOS Defaults
+
+System settings that differ from Apple's defaults live in:
+
+```text
+~/.config/dotfiles/macos.sh
+```
+
+It covers the Dock (left-hand, hidden, smaller tiles), Finder (column view, status bar) and trackpad (tap to click). Everything else is deliberately left at the system default rather than guessed at.
+
+`install.sh` offers to run it. It is idempotent, so apply it any time:
+
+```sh
+zsh ~/.config/dotfiles/macos.sh
+```
+
+It restarts Dock and Finder to make changes take effect. A few settings still need a logout.
+
 ## Git Identity
 
 The tracked Git config includes my name only. Email is local:
@@ -274,6 +303,8 @@ Example:
 [user]
   email = you@example.com
 ```
+
+Credentials for `github.com` are delegated to the GitHub CLI, so a machine needs `gh auth login` before it can push. `install.sh` prompts for this.
 
 ## AWS Vault
 
