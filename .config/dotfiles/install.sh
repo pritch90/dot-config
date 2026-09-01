@@ -330,6 +330,33 @@ ensure_git_email() {
   } >| "$email_file"
 }
 
+ensure_gh_auth() {
+  if /opt/homebrew/bin/gh auth status >/dev/null 2>&1; then
+    return 0
+  fi
+
+  print -- ""
+  print -- "GitHub CLI is not authenticated. .gitconfig delegates github.com"
+  print -- "credentials to gh, so pushing to this repo will fail without it."
+
+  if confirm "Run gh auth login now?" "y"; then
+    /opt/homebrew/bin/gh auth login \
+      || print -u2 -- "install: gh auth login did not complete; run it again later"
+  else
+    print -- "install: skipped. Run 'gh auth login' before pushing."
+  fi
+}
+
+apply_macos_defaults() {
+  local script="${dotfiles_dir}/macos.sh"
+  [[ -r "$script" ]] || return 0
+
+  # Restarts Dock and Finder, so ask rather than surprise an existing machine.
+  if confirm "Apply macOS system defaults (Dock, Finder, trackpad)?" "y"; then
+    /bin/zsh "$script"
+  fi
+}
+
 bootstrap_tpm() {
   local tpm_dir="${HOME}/.tmux/plugins/tpm"
   if [[ ! -d "$tpm_dir" ]]; then
@@ -380,7 +407,9 @@ main() {
   ensure_src_dir
   generate_tmuxinator_dev
   ensure_git_email
+  ensure_gh_auth
   bootstrap_tpm
+  apply_macos_defaults
   validate_neovim
   "${dotfiles_dir}/doctor.sh"
 }
