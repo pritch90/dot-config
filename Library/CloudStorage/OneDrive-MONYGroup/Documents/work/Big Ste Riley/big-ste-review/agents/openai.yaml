@@ -1,4 +1,0 @@
-interface:
-  display_name: "Big Ste Review"
-  short_description: "Review PRs with evidence-gated simplicity"
-  default_prompt: "Use $big-ste-review to review this pull request and report only high-value findings."
