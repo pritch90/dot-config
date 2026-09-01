@@ -75,6 +75,7 @@ Generated or local files are ignored:
 - `~/.config/zsh/local.zsh`
 - `~/.config/zsh/work.zsh`
 - `~/.config/zsh/secrets.zsh`
+- `~/.config/dotfiles/stacks`
 - `~/.config/tmuxinator/dev.yml`
 - `~/.config/nvim/.nvimlog`
 - `~/Library/`
@@ -96,17 +97,58 @@ Equivalent full form:
 git --git-dir="$HOME/.cfg" --work-tree="$HOME" status
 ```
 
-## Installation
+## Stacks
 
-Packages are split across three tiers:
+A machine only needs the languages it actually works in. `~/.config/dotfiles/stacks` records which ones this machine is set up for — one per line, machine-local and gitignored:
 
 ```text
-~/.config/dotfiles/Brewfile.core      always installed
-~/.config/dotfiles/Brewfile.qol       installed by default, skip with --minimal
-~/.config/dotfiles/Brewfile.optional  prompted for, one question per tool
+java
+node
+web
 ```
 
-`Brewfile.core` is the development toolchain: Git, shell, editor, JVM, Node, Go and container tooling.
+Known stacks: `java`, `node`, `web`, `go`, `python`, `terraform`.
+
+That single file is the source of truth for three consumers:
+
+| Consumer | Effect |
+|---|---|
+| `install.sh` | picks up `Brewfile.stack.<name>`; skips SDKMAN without `java`, skips nvm without `node` |
+| `zsh` | gates `~/go/bin`, `PNPM_HOME`, the nvm eager-load and SDKMAN init |
+| Neovim | installs and enables only that stack's LSPs, parsers, formatters and debug adapters |
+
+Set it during install, or non-interactively:
+
+```sh
+~/.config/dotfiles/install.sh --stacks java,node,web
+```
+
+Edit the file by hand to change later — restart your shell and Neovim and it takes effect. No reinstall needed unless you want the Homebrew packages too.
+
+Two behaviours worth knowing:
+
+- **`web` implies `node`.** Its language servers are node processes, so selecting `web` enables `node` automatically.
+- **Disabling never uninstalls.** Turning a stack off deactivates it in the shell and Neovim, but leaves the Homebrew packages alone. Remove them yourself if you want the disk space back.
+- **A missing `stacks` file means everything is on.** That keeps a machine that has not run the installer working exactly as before.
+
+### Adding a stack
+
+1. Create `~/.config/nvim/lua/stacks/<name>.lua` returning any of `mason`, `treesitter`, `lsp`, `formatters`, and a `setup(ctx)` function for anything that is not a plain list.
+2. Add the name to `known` in `~/.config/nvim/lua/stacks/init.lua` and to `DOTFILES_KNOWN_STACKS` in `~/.config/zsh/stacks.zsh`.
+3. Add `~/.config/dotfiles/Brewfile.stack.<name>` if it needs Homebrew packages. Stacks whose tooling comes entirely from mason do not need one.
+
+## Installation
+
+Packages are split across tiers:
+
+```text
+~/.config/dotfiles/Brewfile.core          always installed
+~/.config/dotfiles/Brewfile.stack.<name>  per selected stack
+~/.config/dotfiles/Brewfile.qol           installed by default, skip with --minimal
+~/.config/dotfiles/Brewfile.optional      prompted for, one question per tool
+```
+
+`Brewfile.core` is stack-agnostic: Git, shell, editor, search and container tooling.
 
 `Brewfile.qol` is the quality-of-life app layer — browser, terminal, window manager, API client, music and peripherals. It is installed by default. Skip it for a lean or throwaway machine:
 
@@ -114,7 +156,7 @@ Packages are split across three tiers:
 ~/.config/dotfiles/install.sh --minimal
 ```
 
-`install.sh` asks which optional tools to install before running Homebrew, then installs everything in one batch. It stores local choices in:
+`install.sh` asks which stacks and optional tools to install before running Homebrew, then installs everything in one batch. It stores local choices in:
 
 ```text
 ~/.config/dotfiles/install.local.env
@@ -138,6 +180,8 @@ Current optional tool keys:
 
 Neovim is installed with Homebrew. The config expects Neovim `0.12.0` or newer because it uses `vim.pack` and current LSP APIs.
 
+Language tooling follows the selected stacks — see [Stacks](#stacks). `~/.config/nvim/lua/stacks/` holds one module per stack, and `init.lua` merges whichever are enabled into the mason, treesitter, LSP and formatter lists.
+
 JDTLS Java is pinned through:
 
 ```text
@@ -157,6 +201,8 @@ export JDTLS_JAVA_VERSION="25.0.3-amzn"
 ```
 
 ## Node
+
+Requires the `node` stack; without it none of this is installed or loaded.
 
 `nvm` is **not** installed with Homebrew. The formula installs to `/opt/homebrew/opt/nvm` and never creates `$NVM_DIR` (`~/.nvm`), which is where `~/.config/zsh/tools.zsh` looks for it — so a brewed nvm silently never loads on a fresh machine.
 
