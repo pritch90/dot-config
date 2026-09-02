@@ -1,0 +1,43 @@
+{
+  "workbench.preferredDarkColorTheme": "Calm Days, Sober Nights - Night (Sky)",
+  "workbench.preferredLightColorTheme": "Calm Days, Sober Nights - Day (Sky)",
+  "window.autoDetectColorScheme": true,
+  "editor.fontFamily": "'Monaspace Neon', monospace",
+  "editor.codeLensFontFamily": "'Monaspace Krypton', monospace",
+  "editor.fontLigatures": "'calt', 'ss01', 'ss02', 'ss03', 'ss04', 'ss05', 'ss06', 'ss07', 'ss08', 'ss09', 'liga'",
+  "files.autoSave": "onFocusChange",
+  "security.workspace.trust.untrustedFiles": "open",
+  "workbench.iconTheme": "material-icon-theme",
+  "material-icon-theme.opacity": 0.7,
+  "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features",
+  },
+  "github.copilot.nextEditSuggestions.enabled": false,
+  "[vue]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+  },
+  "terminal.external.osxExec": "iTerm.app",
+  "github.copilot.chat.agent.thinkingTool": true,
+  "editor.inlineSuggest.enabled": false,
+  "chat.agent.maxRequests": 50,
+  "chat.tools.terminal.autoApprove": {
+    "pnpm lint": {
+      "approve": true,
+      "matchCommandLine": true,
+    },
+    "pnpm test": {
+      "approve": true,
+      "matchCommandLine": true,
+    },
+    "pnpm --filter @ai-tools/mcp test": {
+      "approve": true,
+      "matchCommandLine": true,
+    },
+    "pnpm": true,
+    "yarn lint": true,
+  },
+  "plantuml.server": "https://www.plantuml.com/plantuml",
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "workbench.startupEditor": "none",
+  "security.promptForLocalFileProtocolHandling": false,
+}

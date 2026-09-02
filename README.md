@@ -223,7 +223,46 @@ Requires the `node` stack; without it none of this is installed or loaded.
 ~/.config/dotfiles/versions.env
 ```
 
-`node`, `pnpm` and `yarn` are still installed via Homebrew for a working default toolchain; use `nvm` when a project needs a specific Node version.
+`node` is **not** installed with Homebrew either. Brewing it puts `/opt/homebrew/bin/node` ahead of nvm's version on `PATH`, so `nvm use` and `.nvmrc` switching appear to do nothing while a different Node quietly serves every command. nvm owns Node outright.
+
+`install.sh` installs the default version and sets the `default` alias, so a fresh machine has a working Node without a manual `nvm install`. The version is set in `versions.env` and accepts anything nvm understands:
+
+```sh
+export NODE_VERSION="lts/*"
+```
+
+Override it per machine in `~/.config/dotfiles/local.env`.
+
+`pnpm` and `yarn` stay on Homebrew — neither depends on the `node` formula, so they do not drag a second runtime back in.
+
+## GUI App Preferences
+
+| App | How it is tracked |
+| --- | --- |
+| iTerm2 | Reads and writes `~/.config/iterm2` directly |
+| Rectangle | `defaults import` from `~/.config/dotfiles/defaults/` |
+| VS Code | `~/.config/vscode/` symlinked into place |
+
+`install.sh` configures each one only if the app is actually installed.
+
+**iTerm2** is pointed at `~/.config/iterm2` via its own "Load preferences from a custom folder" setting, and told to save changes there automatically. Preference changes then land in the repo with no export step. Its runtime files in that folder (`AppSupport`, `sockets/`) are ignored.
+
+**Rectangle** has no custom-folder option, so its preferences are imported through `defaults import`. Re-export after changing shortcuts:
+
+```sh
+plutil -convert xml1 -o ~/.config/dotfiles/defaults/com.knollsoft.Rectangle.plist \
+  ~/Library/Preferences/com.knollsoft.Rectangle.plist
+```
+
+Both plists are stored as XML rather than binary so diffs are reviewable.
+
+**VS Code** has `settings.json` and `mcp.json` symlinked from `~/.config/vscode/`, so edits made in the editor are picked up by the repo. Any pre-existing file is moved aside to `*.pre-dotfiles` first. Extensions are listed in `~/.config/vscode/extensions.txt`; the installer offers to install them. Refresh the list with:
+
+```sh
+code --list-extensions > ~/.config/vscode/extensions.txt
+```
+
+**IntelliJ** is deliberately not tracked. Its config directory is version-specific, and it holds licence data and recent project paths that do not belong in a public repo. Use its built-in Settings Sync instead.
 
 ## tmuxinator
 

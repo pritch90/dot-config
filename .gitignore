@@ -9,5 +9,10 @@
 .config/tmux/plugins/
 .config/nvim/.nvimlog
 
+# iTerm2 runtime state inside its config dir: AppSupport is a symlink into
+# ~/Library, sockets/ holds live unix sockets. Only the plist is tracked.
+.config/iterm2/AppSupport
+.config/iterm2/sockets/
+
 # OneDrive-synced work documents. Never belong in a public dotfiles repo.
 Library/

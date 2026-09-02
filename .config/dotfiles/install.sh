@@ -371,6 +371,80 @@ apply_macos_defaults() {
   fi
 }
 
+# GUI app preferences.
+#
+# macOS caches preferences in cfprefsd, so a plist written directly under
+# ~/Library/Preferences can be overwritten from memory. `defaults import` goes
+# through the daemon, which is why these use it rather than copying files.
+
+configure_iterm2() {
+  [[ -d "/Applications/iTerm.app" ]] || return 0
+
+  local prefs_dir="${HOME}/.config/iterm2"
+  [[ -r "${prefs_dir}/com.googlecode.iterm2.plist" ]] || return 0
+
+  # Point iTerm2 at the tracked folder and let it read/write there directly,
+  # so future preference changes land in the repo rather than in ~/Library.
+  /usr/bin/defaults write com.googlecode.iterm2 PrefsCustomFolder -string "$prefs_dir"
+  /usr/bin/defaults write com.googlecode.iterm2 LoadPrefsFromCustomFolder -bool true
+  # 2 = save changes to the folder automatically, without prompting on quit.
+  /usr/bin/defaults write com.googlecode.iterm2 \
+    NoSyncNeverRemindPrefsChangesLostForFile_selection -int 2
+
+  print -- "install: iTerm2 will load preferences from ${prefs_dir}"
+}
+
+configure_rectangle() {
+  [[ -d "/Applications/Rectangle.app" ]] || return 0
+
+  local plist="${dotfiles_dir}/defaults/com.knollsoft.Rectangle.plist"
+  [[ -r "$plist" ]] || return 0
+
+  /usr/bin/defaults import com.knollsoft.Rectangle "$plist"
+  print -- "install: imported Rectangle preferences"
+}
+
+configure_vscode() {
+  local src="${HOME}/.config/vscode"
+  local dest="${HOME}/Library/Application Support/Code/User"
+  [[ -d "$src" ]] || return 0
+  [[ -d "/Applications/Visual Studio Code.app" ]] || return 0
+
+  /bin/mkdir -p "$dest"
+
+  # Symlink rather than copy so edits made in VS Code land in the repo.
+  local file
+  for file in settings.json mcp.json; do
+    [[ -r "${src}/${file}" ]] || continue
+    if [[ -e "${dest}/${file}" && ! -L "${dest}/${file}" ]]; then
+      /bin/mv "${dest}/${file}" "${dest}/${file}.pre-dotfiles"
+    fi
+    /bin/ln -sfn "${src}/${file}" "${dest}/${file}"
+  done
+
+  local extensions="${src}/extensions.txt"
+  if [[ -r "$extensions" ]] && command -v code >/dev/null 2>&1; then
+    local count
+    count="$(/usr/bin/grep -c . "$extensions")"
+    if confirm "Install ${count} VS Code extensions?" "y"; then
+      local ext
+      while IFS= read -r ext || [[ -n "$ext" ]]; do
+        [[ -n "$ext" ]] || continue
+        code --install-extension "$ext" --force >/dev/null 2>&1 \
+          || print -u2 -- "install: could not install extension $ext"
+      done < "$extensions"
+    fi
+  fi
+
+  print -- "install: VS Code settings linked from ${src}"
+}
+
+configure_gui_apps() {
+  configure_iterm2
+  configure_rectangle
+  configure_vscode
+}
+
 bootstrap_tpm() {
   local tpm_dir="${HOME}/.tmux/plugins/tpm"
   if [[ ! -d "$tpm_dir" ]]; then
@@ -424,6 +498,7 @@ main() {
   ensure_gh_auth
   bootstrap_tpm
   apply_macos_defaults
+  configure_gui_apps
   validate_neovim
   "${dotfiles_dir}/doctor.sh"
 }
