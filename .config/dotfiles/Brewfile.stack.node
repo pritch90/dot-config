@@ -1,5 +1,10 @@
-# Node stack. nvm is curl-installed by install.sh, not brewed.
+# Node stack.
+#
+# node itself is deliberately absent: nvm owns it. Brewing node as well puts a
+# second runtime on PATH that shadows nvm's, so `nvm use` and .nvmrc switching
+# appear to do nothing. install.sh curl-installs nvm and sets a default version.
+#
+# pnpm and yarn have no dependency on the node formula, so they stay brewed.
 
-brew "node"
 brew "pnpm"
 brew "yarn"

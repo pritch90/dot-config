@@ -273,13 +273,27 @@ ensure_nvm() {
   # The Homebrew nvm formula installs to /opt/homebrew/opt/nvm and never
   # creates $NVM_DIR, so .config/zsh/tools.zsh would silently never load it.
   # Install from source instead, matching where tools.zsh looks.
-  if [[ -s "$NVM_DIR/nvm.sh" ]]; then
-    return
+  if [[ ! -s "$NVM_DIR/nvm.sh" ]]; then
+    /bin/mkdir -p "$NVM_DIR"
+    /usr/bin/curl -fsSL \
+      "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" | /bin/bash
   fi
 
-  /bin/mkdir -p "$NVM_DIR"
-  /usr/bin/curl -fsSL \
-    "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" | /bin/bash
+  source "$NVM_DIR/nvm.sh"
+
+  # nvm is the only source of node, and installing it does not install a
+  # runtime. Without a default alias nvm puts nothing on PATH, so the node
+  # stack would have no node at all and `nvm use` would have nothing to pick.
+  local current
+  current="$(nvm version default 2>/dev/null)" || current="N/A"
+
+  if [[ "$current" == "N/A" || -z "$current" ]]; then
+    print -- "install: installing node ${NODE_VERSION} via nvm"
+    nvm install "$NODE_VERSION"
+    nvm alias default "$NODE_VERSION"
+  else
+    print -- "install: nvm default node is ${current}"
+  fi
 }
 
 ensure_src_dir() {
